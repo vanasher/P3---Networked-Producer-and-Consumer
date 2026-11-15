@@ -1,0 +1,12 @@
+out/
+target/
+
+uploads/*
+!uploads/.gitkeep
+
+videos/*
+!videos/.gitkeep
+
+.idea/
+.vscode/
+*.iml
