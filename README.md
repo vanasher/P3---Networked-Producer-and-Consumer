@@ -1,5 +1,5 @@
 # P3---Networked-Producer-and-Consumer
 
-`javac -d out main/java/shared/*.java main/java/producer/*.java main/java/producer/*.java`
+`mvnw.cmd compile`
 
 `java -cp out producer.ProducerMain`
