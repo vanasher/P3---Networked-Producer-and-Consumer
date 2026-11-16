@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option java_package = "generated";
+option java_multiple_files = true;
+
+service MediaUpload {
+  rpc Upload(stream VideoChunk) returns (UploadResult);
+}
+
+message VideoChunk {
+  int32 producer_id = 1;
+  string file_name = 2;
+  bytes data = 3;
+}
+
+message UploadResult {
+  bool accepted = 1;
+  string message = 2;
+}
