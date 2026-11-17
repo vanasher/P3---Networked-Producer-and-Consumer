@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Media Upload Service</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --text: #1d2330; --muted: #6b7280; --line: #e3e6eb;
+    --accent: #2563eb; --new: #16a34a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111318; --card: #1b1e25; --text: #e8eaee; --muted: #9aa1ad; --line: #2a2e37; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; padding: 20px 16px 8px; max-width: 1200px; margin: 0 auto; }
+  h1 { margin: 0; font-size: 22px; }
+  #status { color: var(--muted); font-size: 14px; }
+  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; padding: 12px 16px 32px; max-width: 1200px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; transition: box-shadow .15s; }
+  .card:hover, .card:focus-visible { box-shadow: 0 4px 16px rgba(0,0,0,.18); outline: none; }
+  .card.new { border-color: var(--new); }
+  .thumb { position: relative; aspect-ratio: 16 / 9; background: #000; }
+  .thumb video { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .badge { position: absolute; top: 8px; left: 8px; padding: 2px 8px; border-radius: 99px; font-size: 12px; color: #fff; background: rgba(0,0,0,.6); }
+  .badge.hidden { display: none; }
+  .bar { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: var(--accent); }
+  .info { padding: 10px 12px; }
+  .name { font-weight: 600; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  #empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 60px 0; }
+  dialog { width: min(1000px, 94vw); padding: 0; border: none; border-radius: 10px; background: #000; color: #fff; }
+  dialog::backdrop { background: rgba(0,0,0,.75); }
+  dialog video { width: 100%; max-height: 80vh; display: block; }
+  .dialog-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 12px; }
+  .dialog-bar span { overflow-wrap: anywhere; }
+  .dialog-bar button { font: inherit; padding: 4px 12px; border-radius: 6px; border: 1px solid #555; background: #222; color: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Uploaded videos</h1>
+  <span id="status">Loading…</span>
+</header>
+<main id="grid"><div id="empty">No videos uploaded yet. New uploads appear here on their own.</div></main>
+
+<dialog id="player">
+  <div class="dialog-bar"><span id="player-name"></span><button id="close">Close</button></div>
+  <video id="player-video" controls></video>
+</dialog>
+
+<script>
+const PREVIEW_SECONDS = 10;
+const grid = document.getElementById('grid');
+const empty = document.getElementById('empty');
+const status = document.getElementById('status');
+const player = document.getElementById('player');
+const playerVideo = document.getElementById('player-video');
+const cards = new Map(); // file name -> card element
+let firstLoad = true;
+
+const src = (name) => '/videos/' + encodeURIComponent(name);
+const size = (b) => b >= 1e9 ? (b / 1e9).toFixed(2) + ' GB' : b >= 1e6 ? (b / 1e6).toFixed(1) + ' MB' : Math.ceil(b / 1e3) + ' KB';
+
+function makeCard(v) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.tabIndex = 0;
+  card.innerHTML = '<div class="thumb"><video muted playsinline preload="metadata"></video>'
+    + '<span class="badge hidden">Preview</span><div class="bar"></div></div>'
+    + '<div class="info"><div class="name"></div><div class="meta"></div></div>';
+  const video = card.querySelector('video');
+  const badge = card.querySelector('.badge');
+  const bar = card.querySelector('.bar');
+  video.muted = true; // browsers only allow play() without a click when the video is muted
+  video.src = src(v.name) + '#t=0.1'; // #t=0.1 shows the first frame as the thumbnail
+  card.querySelector('.name').textContent = v.name;
+  card.querySelector('.meta').textContent = size(v.size) + ' · ' + new Date(v.modified).toLocaleString();
+
+  // Hover: play the first 10 seconds on a loop, muted.
+  const startPreview = () => {
+    video.currentTime = 0;
+    video.play().catch(() => {});
+    badge.classList.remove('hidden');
+  };
+  const stopPreview = () => {
+    video.pause();
+    video.currentTime = 0.1;
+    badge.classList.add('hidden');
+    bar.style.width = '0';
+  };
+  video.addEventListener('timeupdate', () => {
+    if (badge.classList.contains('hidden')) return;
+    const limit = Math.min(PREVIEW_SECONDS, video.duration || PREVIEW_SECONDS);
+    if (video.currentTime >= limit) video.currentTime = 0;
+    bar.style.width = (100 * video.currentTime / limit) + '%';
+  });
+  video.addEventListener('ended', () => { if (!badge.classList.contains('hidden')) startPreview(); }); // video shorter than 10 s
+  card.addEventListener('mouseenter', startPreview);
+  card.addEventListener('mouseleave', stopPreview);
+  card.addEventListener('focus', startPreview);
+  card.addEventListener('blur', stopPreview);
+
+  // Click: play the full video with sound.
+  const open = () => {
+    stopPreview();
+    document.getElementById('player-name').textContent = v.name;
+    playerVideo.src = src(v.name);
+    player.showModal();
+    playerVideo.play().catch(() => {});
+  };
+  card.addEventListener('click', open);
+  card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  return card;
+}
+
+function closePlayer() {
+  playerVideo.pause();
+  playerVideo.removeAttribute('src');
+  playerVideo.load();
+  if (player.open) player.close();
+}
+document.getElementById('close').addEventListener('click', closePlayer);
+player.addEventListener('close', closePlayer);
+player.addEventListener('click', (e) => { if (e.target === player) closePlayer(); }); // click outside the video
+
+// Checks the folder every 2 seconds. Only new or removed files change the page, so a running preview is not interrupted.
+async function refresh() {
+  try {
+    const videos = await (await fetch('/api/videos')).json();
+    const names = new Set(videos.map((v) => v.name));
+    for (const [name, card] of cards) {
+      if (!names.has(name)) { card.remove(); cards.delete(name); }
+    }
+    videos.forEach((v, i) => {
+      let card = cards.get(v.name);
+      if (!card) {
+        card = makeCard(v);
+        cards.set(v.name, card);
+        if (!firstLoad) { card.classList.add('new'); setTimeout(() => card.classList.remove('new'), 5000); }
+      }
+      if (grid.children[i] !== card) grid.insertBefore(card, grid.children[i] || null); // newest first
+    });
+    empty.hidden = videos.length > 0;
+    if (videos.length === 0) grid.appendChild(empty);
+    status.textContent = videos.length + (videos.length === 1 ? ' video' : ' videos') + ' · updated ' + new Date().toLocaleTimeString();
+    firstLoad = false;
+  } catch {
+    status.textContent = 'Cannot reach the consumer. Retrying…';
+  }
+}
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>
