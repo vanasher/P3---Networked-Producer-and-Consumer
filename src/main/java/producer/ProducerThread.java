@@ -35,7 +35,6 @@ public class ProducerThread extends Thread {
 
     private boolean isVideo(File file) {
         return (
-            file.getName().toLowerCase().endsWith(".mp4") ||
             file.getName().toLowerCase().endsWith(".mp4")
         );
     }
