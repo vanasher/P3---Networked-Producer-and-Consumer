@@ -1,6 +1,7 @@
 # P3---Networked-Producer-and-Consumer
 
-`mvnw.cmd compile dependency:copy-dependencies`
+`chmod +x mvnw`
+`./mvnw compile dependency:copy-dependencies`
 
 `mvnw.cmd compile`
 

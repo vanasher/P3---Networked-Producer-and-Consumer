@@ -53,7 +53,14 @@ public class ProducerThread extends Thread {
     }
 
     private boolean isVideo(File file) {
-        return file.getName().toLowerCase().endsWith(".mp4");
+        return (
+            file.getName().toLowerCase().endsWith(".mp4") ||
+            file.getName().toLowerCase().endsWith(".webm") ||
+            file.getName().toLowerCase().endsWith(".mov") ||
+            file.getName().toLowerCase().endsWith(".avi") ||
+            file.getName().toLowerCase().endsWith(".mkv") ||
+            file.getName().toLowerCase().endsWith(".wmv") ||
+        );
     }
 
         // sends one video, waiting and trying again for as long as the consumer's queue is full
