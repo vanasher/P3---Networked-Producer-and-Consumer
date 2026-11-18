@@ -32,7 +32,7 @@ public class ProducerMain {
 
         List<ProducerThread> producers = new ArrayList<>();
         for (int i = 1; i <= p; i++) {
-            File folder = new File("videos/producer" + i);
+            File folder = new File("videos/thread" + i);
             ProducerThread producer = new ProducerThread(i, folder, channel);
             producers.add(producer);
             producer.start();

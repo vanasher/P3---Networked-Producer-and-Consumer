@@ -30,6 +30,11 @@ public class ProducerThread extends Thread {
     public void run() {
         File[] files = folder.listFiles();
 
+        if (files == null) {
+            System.out.println("Producer " + id + " cannot read folder " + folder.getPath());
+            return;
+        }
+
         for (File file : files) {
             if (!isVideo(file)) {
                 continue;
@@ -47,7 +52,10 @@ public class ProducerThread extends Thread {
     }
 
     private boolean isVideo(File file) {
-        return file.getName().toLowerCase().endsWith(".mp4");
+        return (
+            file.getName().toLowerCase().endsWith(".mp4") ||
+            file.getName().toLowerCase().endsWith(".webm")
+        );
     }
 
     private void sendVideo(File video) throws IOException, InterruptedException {
