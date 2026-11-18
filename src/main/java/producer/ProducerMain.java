@@ -19,7 +19,7 @@ public class ProducerMain {
         String host = InputReader.readText(scanner, "Consumer address (e.g. localhost): ");
 
         for (int i = 1; i <= p; i++) {
-            File folder = new File("videos/producer" + i);
+            File folder = new File("videos/thread" + i);
             if (!folder.isDirectory()) {
                 System.out.println("Missing folder: " + folder.getPath());
                 return;
