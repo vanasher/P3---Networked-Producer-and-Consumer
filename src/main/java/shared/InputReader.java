@@ -20,4 +20,16 @@ public class InputReader {
             }
         }
     }
+
+    public static String readText(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String text = scanner.nextLine().trim();
+
+            if (!text.isEmpty() && !text.contains(" ")) {
+                return text;
+            }
+            System.out.println("Please enter an address like localhost or 192.168.1.5.");
+        }
+    }
 }
