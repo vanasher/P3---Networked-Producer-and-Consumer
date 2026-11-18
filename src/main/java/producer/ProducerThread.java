@@ -14,7 +14,8 @@ import java.util.concurrent.CountDownLatch;
 
 public class ProducerThread extends Thread {
 
-    private static final int CHUNK_SIZE = 1024 * 1024;
+    private static final int CHUNK_SIZE = 1024 * 1024;          
+    private static final int RETRY_DELAY_MS = 3000;    
 
     private final int id;
     private final File folder;
@@ -41,7 +42,7 @@ public class ProducerThread extends Thread {
             }
 
             try {
-                sendVideo(file);
+                sendWithRetry(file);
             } catch (IOException e) {
                 System.out.println("Producer " + id + " could not read " + file.getName());
             } catch (InterruptedException e) {
@@ -52,13 +53,30 @@ public class ProducerThread extends Thread {
     }
 
     private boolean isVideo(File file) {
-        return (
-            file.getName().toLowerCase().endsWith(".mp4") ||
-            file.getName().toLowerCase().endsWith(".webm")
-        );
+        return file.getName().toLowerCase().endsWith(".mp4");
     }
 
-    private void sendVideo(File video) throws IOException, InterruptedException {
+        // sends one video, waiting and trying again for as long as the consumer's queue is full
+    private void sendWithRetry(File video) throws IOException, InterruptedException {
+        while (true) {
+            Reply reply = sendVideo(video);
+
+            if (reply.accepted) {
+                System.out.println("Producer " + id + ": " + video.getName() + " was accepted");
+                return;
+            }
+
+            if (!reply.queueFull) {
+                System.out.println("Producer " + id + ": " + video.getName() + " was dropped (" + reply.message + ")");
+                return;
+            }
+
+            System.out.println("Producer " + id + ": queue is full, waiting to retry " + video.getName());
+            Thread.sleep(RETRY_DELAY_MS);
+        }
+    }
+
+    private Reply sendVideo(File video) throws IOException, InterruptedException {
         Reply reply = new Reply();
         StreamObserver<VideoChunk> request = stub.upload(reply);
         ClientCallStreamObserver<VideoChunk> flow = (ClientCallStreamObserver<VideoChunk>) request;
@@ -93,22 +111,20 @@ public class ProducerThread extends Thread {
         }
         reply.waitUntilFinished();
 
-        if (reply.accepted) {
-            System.out.println("Producer " + id + ": " + video.getName() + " was accepted");
-        } else {
-            System.out.println("Producer " + id + ": " + video.getName() + " was dropped (" + reply.message + ")");
-        }
+        return reply;
     }
 
     private static class Reply implements StreamObserver<UploadResult> {
 
         private final CountDownLatch finished = new CountDownLatch(1);
         private volatile boolean accepted = false;
+        private volatile boolean queueFull = false;
         private volatile String message = "No reply";
 
         @Override
         public void onNext(UploadResult result) {
             accepted = result.getAccepted();
+            queueFull = result.getQueueFull();
             message = result.getMessage();
         }
 

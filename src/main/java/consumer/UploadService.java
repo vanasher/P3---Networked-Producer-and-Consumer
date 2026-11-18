@@ -39,8 +39,7 @@ public class UploadService extends MediaUploadGrpc.MediaUploadImplBase {
 
                     if (queue.isFull()) {
                         rejected = true;
-                        System.out.println("Dropped " + fileName + " from producer " + producerId + " (queue full)");
-                        reply(false, "Queue is full");
+                        turnAway();
                         return;
                     }
                 }
@@ -63,7 +62,7 @@ public class UploadService extends MediaUploadGrpc.MediaUploadImplBase {
                 }
 
                 if (fileName == null) {
-                    reply(false, "No data received");
+                    reply(false, false, "No data received");
                     return;
                 }
 
@@ -71,16 +70,21 @@ public class UploadService extends MediaUploadGrpc.MediaUploadImplBase {
 
                 if (accepted) {
                     System.out.println("Queued " + fileName + " from producer " + producerId);
-                    reply(true, "Queued");
+                    reply(true, false, "Queued");
                 } else {
-                    System.out.println("Dropped " + fileName + " from producer " + producerId + " (queue full)");
-                    reply(false, "Queue is full");
+                    turnAway();
                 }
             }
 
-            private void reply(boolean accepted, String message) {
+            private void turnAway() {
+                System.out.println("Turned away " + fileName + " from producer " + producerId + " (queue full)");
+                reply(false, true, "Queue is full");
+            }
+
+            private void reply(boolean accepted, boolean queueFull, String message) {
                 UploadResult result = UploadResult.newBuilder()
                         .setAccepted(accepted)
+                        .setQueueFull(queueFull)
                         .setMessage(message)
                         .build();
                 responseObserver.onNext(result);

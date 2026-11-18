@@ -16,4 +16,5 @@ message VideoChunk {
 message UploadResult {
   bool accepted = 1;
   string message = 2;
+  bool queue_full = 3;
 }
