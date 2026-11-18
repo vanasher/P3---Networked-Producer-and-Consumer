@@ -59,7 +59,7 @@ public class ProducerThread extends Thread {
             file.getName().toLowerCase().endsWith(".mov") ||
             file.getName().toLowerCase().endsWith(".avi") ||
             file.getName().toLowerCase().endsWith(".mkv") ||
-            file.getName().toLowerCase().endsWith(".wmv") ||
+            file.getName().toLowerCase().endsWith(".wmv")
         );
     }
 
