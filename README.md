@@ -34,3 +34,5 @@ Consumer: `java -Xmx4g -cp "target/classes;target/dependency/*" consumer.Consume
 Producer: `java -cp "target/classes:target/dependency/*" producer.ProducerMain`
 
 Consumer: `java -Xmx4g -cp "target/classes:target/dependency/*" consumer.ConsumerMain`
+
+video_demos/ contain the vids of running the program with different test cases
