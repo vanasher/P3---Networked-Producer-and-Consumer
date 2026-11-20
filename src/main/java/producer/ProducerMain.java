@@ -16,7 +16,7 @@ public class ProducerMain {
     public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
         int p = InputReader.readPositiveInt(scanner, "Number of producer threads (p): ");
-        String host = InputReader.readText(scanner, "Consumer address (e.g. localhost): ");
+        String host = InputReader.readHost(scanner, "Consumer address (e.g. localhost): ");
 
         for (int i = 1; i <= p; i++) {
             File folder = new File("videos/thread" + i);
@@ -30,16 +30,20 @@ public class ProducerMain {
                 .usePlaintext()
                 .build();
 
-        List<ProducerThread> producers = new ArrayList<>();
-        for (int i = 1; i <= p; i++) {
-            File folder = new File("videos/thread" + i);
-            ProducerThread producer = new ProducerThread(i, folder, channel);
-            producers.add(producer);
-            producer.start();
-        }
+        try {
+            List<ProducerThread> producers = new ArrayList<>();
+            for (int i = 1; i <= p; i++) {
+                File folder = new File("videos/thread" + i);
+                ProducerThread producer = new ProducerThread(i, folder, channel);
+                producers.add(producer);
+                producer.start();
+            }
 
-        for (ProducerThread producer : producers) {
-            producer.join();
+            for (ProducerThread producer : producers) {
+                producer.join();
+            }
+        } finally {
+            channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);
         }
 
         channel.shutdown().awaitTermination(5, TimeUnit.SECONDS);

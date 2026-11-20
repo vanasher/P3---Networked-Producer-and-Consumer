@@ -1,5 +1,7 @@
 package shared;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 
 public class InputReader {
@@ -16,20 +18,31 @@ public class InputReader {
                 }
                 System.out.println("Please enter a number that is at least 1.");
             } catch (NumberFormatException e) {
-                System.out.println("That is not a whole number. Try again.");
+                if (text.matches("-?\\d+")) {
+                    System.out.println("That number is out of range. Try again.");
+                } else {
+                    System.out.println("That is not a whole number. Try again.");
+                }
             }
         }
     }
 
-    public static String readText(Scanner scanner, String prompt) {
+    public static String readHost(Scanner scanner, String prompt) {
         while (true) {
             System.out.print(prompt);
             String text = scanner.nextLine().trim();
 
-            if (!text.isEmpty() && !text.contains(" ")) {
-                return text;
+            if (text.isEmpty() || text.contains(" ")) {
+                System.out.println("Please enter an address with no spaces, like localhost or 192.168.1.5.");
+                continue;
             }
-            System.out.println("Please enter an address like localhost or 192.168.1.5.");
+
+            try {
+                InetAddress.getByName(text);
+                return text;
+            } catch (UnknownHostException e) {
+                System.out.println("Cannot find that address. Try again.");
+            }
         }
     }
 }

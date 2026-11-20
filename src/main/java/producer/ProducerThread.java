@@ -1,5 +1,6 @@
 package producer;
 
+import java.util.Arrays;
 import com.google.protobuf.ByteString;
 import generated.MediaUploadGrpc;
 import generated.UploadResult;
@@ -35,6 +36,8 @@ public class ProducerThread extends Thread {
             System.out.println("Producer " + id + " cannot read folder " + folder.getPath());
             return;
         }
+
+        Arrays.sort(files);
 
         for (File file : files) {
             if (!isVideo(file)) {
